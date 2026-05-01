@@ -1,5 +1,6 @@
 import "dotenv/config";
 import Fastify from "fastify";
+import cors from "@fastify/cors";
 import { createRuntime } from "./runtime.ts";
 import type { ScenarioId } from "../worker/scenarios.ts";
 
@@ -7,6 +8,7 @@ const PORT = Number(process.env.PORT ?? 3001);
 const HOST = process.env.HOST ?? "127.0.0.1";
 
 const app = Fastify({ logger: { level: "warn" } });
+await app.register(cors, { origin: true });
 const rt = createRuntime();
 
 app.get("/healthz", async () => ({ ok: true }));
