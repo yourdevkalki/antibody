@@ -7,21 +7,15 @@ const ATTACKER: Address = "0xDEADBEEFdeadBEEFdeadBeEFdeadbEEFDEaDBEef";
 
 export type ScenarioId = "legit" | "rule1-attacker" | "rule2-dump" | "rule3-burst";
 
-function legitDcaBuy(treasury: Address): SwapIntent {
+function legitDcaBuy(_treasury: Address): SwapIntent {
   return {
     id: randomUUID(),
     proposedAt: Date.now(),
     network: NETWORK,
-    contractAddress: SEPOLIA_UNIV3_ROUTER,
-    functionName: "swapExactTokensForTokens",
-    functionArgs: [
-      "5000000",
-      "0",
-      [SEPOLIA_USDC, SEPOLIA_WETH],
-      treasury,
-      Math.floor(Date.now() / 1000) + 600,
-    ],
-    rationale: "Scheduled DCA: weekly 5 USDC → WETH purchase per policy.",
+    contractAddress: SEPOLIA_USDC,
+    functionName: "approve",
+    functionArgs: [SEPOLIA_UNIV3_ROUTER, "5000000"],
+    rationale: "Scheduled DCA: approving 5 USDC for the Uniswap router (step 1 of weekly buy).",
   };
 }
 
@@ -49,21 +43,15 @@ function rule2Dump(treasury: Address): SwapIntent {
   };
 }
 
-function rule3Burst(treasury: Address): SwapIntent[] {
+function rule3Burst(_treasury: Address): SwapIntent[] {
   const t = Date.now();
   return Array.from({ length: 5 }, (_, i) => ({
     id: randomUUID(),
     proposedAt: t + i * 100,
     network: NETWORK,
-    contractAddress: SEPOLIA_UNIV3_ROUTER,
-    functionName: "swapExactTokensForTokens",
-    functionArgs: [
-      "1000000",
-      "0",
-      [SEPOLIA_USDC, SEPOLIA_WETH],
-      treasury,
-      Math.floor(Date.now() / 1000) + 600,
-    ],
+    contractAddress: SEPOLIA_USDC,
+    functionName: "approve",
+    functionArgs: [SEPOLIA_UNIV3_ROUTER, "1000000"],
     rationale: `Burst leg ${i + 1}/5 — accelerated execution per owner directive.`,
   }));
 }

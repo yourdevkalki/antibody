@@ -67,8 +67,9 @@ export class KeeperHubClient {
     return text ? (JSON.parse(text) as T) : (undefined as T);
   }
 
-  listChains(): Promise<{ data: Chain[] }> {
-    return this.request("/chains");
+  async listChains(): Promise<{ data: Chain[] }> {
+    const res = await this.request<Chain[] | { data: Chain[] }>("/chains");
+    return Array.isArray(res) ? { data: res } : res;
   }
 
   contractCall(params: ContractCallParams): Promise<ExecutionResponse | ContractCallReadResult> {

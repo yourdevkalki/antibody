@@ -7,6 +7,7 @@
     "spike": "tsx src/spike.ts",
     "dev": "tsx src/dev.ts",
     "server": "tsx src/server/index.ts",
+    "server:run": "node --import tsx src/server/index.ts",
     "rules:check": "tsx src/guardian/rules/check.ts",
     "typecheck": "tsc --noEmit"
   },

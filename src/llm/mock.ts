@@ -53,10 +53,10 @@ export class MockLLM implements LLMClient {
       id: randomUUID(),
       name: "propose_swap",
       arguments: {
-        contractAddress: SEPOLIA_UNIV3_ROUTER,
-        functionName: "swapExactTokensForTokens",
-        functionArgs: ["5000000", "0", [SEPOLIA_USDC, SEPOLIA_WETH], treasury, Math.floor(Date.now() / 1000) + 600],
-        rationale: "Scheduled DCA: weekly 5 USDC → WETH purchase per policy.",
+        contractAddress: SEPOLIA_USDC,
+        functionName: "approve",
+        functionArgs: [SEPOLIA_UNIV3_ROUTER, "5000000"],
+        rationale: "Scheduled DCA: approving 5 USDC for the Uniswap router (step 1 of weekly buy).",
       },
     };
   }
