@@ -6,7 +6,8 @@ export type AuditEntry =
   | { kind: "intent_decided"; at: number; decision: IntentDecision }
   | { kind: "guardian_explanation"; at: number; intentId: string; text: string }
   | { kind: "frozen"; at: number; intentId: string; freezeTxHash?: string }
-  | { kind: "policy_loaded"; at: number; source: string; policy: Policy };
+  | { kind: "policy_loaded"; at: number; source: string; policy: Policy }
+  | { kind: "reset"; at: number };
 
 export interface AuditLog {
   append(entry: AuditEntry): Promise<void>;

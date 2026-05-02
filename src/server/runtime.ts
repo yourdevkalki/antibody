@@ -10,6 +10,8 @@ import { getLLMClient, type LLMClient } from "../llm/index.ts";
 import { proposeFromMessage } from "../worker/proposer.ts";
 import { getAuditLog, type AuditLog, type AuditEntry } from "../audit/index.ts";
 import type { ScenarioId } from "../worker/scenarios.ts";
+import { readText, setText } from "../ens/client.ts";
+import { deserializePolicy, type SerializedPolicy } from "../ens/policy.ts";
 
 export interface Runtime {
   bus: EventEmitter;
@@ -21,10 +23,19 @@ export interface Runtime {
   guardian: Guardian;
   worker: Worker;
   audit: AuditLog;
-  state: { frozen: boolean; explanations: Map<string, string> };
+  state: { frozen: boolean; explanations: Map<string, string>; ens: EnsContext };
   runScenario(s: ScenarioId): void;
   chat(message: string): Promise<SwapIntent>;
   snapshot(): RuntimeSnapshot;
+  reset(): void;
+}
+
+export interface EnsContext {
+  enabled: boolean;
+  parent: string;
+  workerName: string;
+  guardianName: string;
+  policySource: "ens" | "fallback";
 }
 
 export interface RuntimeSnapshot {
@@ -34,18 +45,45 @@ export interface RuntimeSnapshot {
   pendingCount: number;
   llmProvider: string;
   khProvider: string;
+  ens: EnsContext;
 }
 
-export function createRuntime(): Runtime {
+export async function createRuntime(): Promise<Runtime> {
   const treasury = (process.env.TREASURY_ADDRESS as Address) ?? "0x1111111111111111111111111111111111111111";
-  const policy = buildDcaPolicy(treasury);
+  const network = process.env.KEEPERHUB_NETWORK ?? "sepolia";
   const queue = new PendingQueue();
   const kh = getKHClient();
   const llm = getLLMClient();
   const audit = getAuditLog();
   const bus = new EventEmitter();
 
-  const state: Runtime["state"] = { frozen: false, explanations: new Map() };
+  const ensParent = process.env.ENS_PARENT_DOMAIN ?? "antibody.eth";
+  const ensWorker = `${process.env.ENS_WORKER_SUBNAME ?? "worker"}.${ensParent}`;
+  const ensGuardian = `${process.env.ENS_GUARDIAN_SUBNAME ?? "guardian"}.${ensParent}`;
+
+  let policy: Policy;
+  let policySource: "ens" | "fallback";
+  try {
+    const raw = await readText(ensWorker, "policy");
+    if (!raw) throw new Error(`empty policy text record on ${ensWorker}`);
+    policy = deserializePolicy(JSON.parse(raw) as SerializedPolicy);
+    policySource = "ens";
+    console.log(`[ens] policy loaded from ${ensWorker} (whitelist size ${policy.whitelist.length})`);
+  } catch (e) {
+    policy = buildDcaPolicy(treasury);
+    policySource = "fallback";
+    console.warn(`[ens] failed to load policy from ${ensWorker}: ${(e as Error).message}; using local fixture`);
+  }
+
+  const ensCtx: EnsContext = {
+    enabled: policySource === "ens",
+    parent: ensParent,
+    workerName: ensWorker,
+    guardianName: ensGuardian,
+    policySource,
+  };
+
+  const state: Runtime["state"] = { frozen: false, explanations: new Map(), ens: ensCtx };
 
   const guardian = new Guardian({
     policy,
@@ -77,10 +115,11 @@ export function createRuntime(): Runtime {
       const f: AuditEntry = { kind: "frozen", at: Date.now(), intentId: decision.intentId, freezeTxHash: decision.txHash };
       await audit.append(f);
       bus.emit("audit", f);
+      if (ensCtx.enabled) writeIncidentToEns(decision, ensCtx, kh, network, audit, bus);
     }
   });
 
-  audit.append({ kind: "policy_loaded", at: Date.now(), source: "shared/policy.ts", policy }).then(() => {});
+  audit.append({ kind: "policy_loaded", at: Date.now(), source: ensCtx.enabled ? `ens:${ensWorker}` : "shared/policy.ts", policy }).then(() => {});
 
   const rt: Runtime = {
     bus,
@@ -126,9 +165,46 @@ export function createRuntime(): Runtime {
         pendingCount: queue.size(),
         llmProvider: llm.providerLabel,
         khProvider: kh.constructor.name,
+        ens: ensCtx,
       };
+    },
+    reset() {
+      queue.clear();
+      guardian.reset();
+      state.frozen = false;
+      state.explanations.clear();
+      bus.emit("audit", { kind: "reset", at: Date.now() });
     },
   };
 
   return rt;
+}
+
+function writeIncidentToEns(
+  decision: IntentDecision,
+  ens: EnsContext,
+  kh: KHClient,
+  network: string,
+  audit: AuditLog,
+  bus: EventEmitter,
+): void {
+  const fired = decision.rules.filter((r) => r.fired).map((r) => r.ruleId);
+  const incident = {
+    intentId: decision.intentId,
+    at: decision.decidedAt,
+    rules: fired,
+    freezeTxHash: decision.txHash,
+  };
+  setText(kh, ens.workerName, "incident", JSON.stringify(incident), network)
+    .then(async (res) => {
+      const entry: AuditEntry = {
+        kind: "guardian_explanation",
+        at: Date.now(),
+        intentId: decision.intentId,
+        text: `Immune memory written to ${ens.workerName} (tx ${res.txHash ?? "pending"}).`,
+      };
+      await audit.append(entry);
+      bus.emit("audit", entry);
+    })
+    .catch((e) => console.warn(`[ens] incident write failed: ${(e as Error).message}`));
 }

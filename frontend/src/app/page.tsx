@@ -8,8 +8,10 @@ import {
   type SwapIntent,
   postChat,
   postScenario,
+  postReset,
   shorten,
   explorerLink,
+  ensLink,
   useEvents,
 } from "./lib";
 
@@ -72,14 +74,28 @@ function Header({
         <span className="text-xs text-zinc-500 hidden md:inline">an immune system for AI agents</span>
       </div>
 
-      <div className="flex items-center gap-6 text-sm">
+      <div className="flex items-center gap-5 text-sm">
         {snapshot ? (
           <div className="flex items-center gap-2 text-zinc-400">
             <span>treasury</span>
             <code className="text-zinc-200 font-mono">{shorten(snapshot.treasury)}</code>
           </div>
         ) : null}
-        {snapshot ? (
+        {snapshot?.ens.enabled ? (
+          <a
+            href={ensLink(snapshot.ens.workerName)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition"
+            title={`Policy loaded from ${snapshot.ens.workerName} (text record). Click to view on ENS.`}
+          >
+            <span>policy</span>
+            <code className="text-zinc-200 font-mono">
+              {snapshot.policy.action} {snapshot.policy.asset}
+            </code>
+            <span className="text-[9px] uppercase tracking-wider text-emerald-400">via ENS</span>
+          </a>
+        ) : snapshot ? (
           <div className="flex items-center gap-2 text-zinc-400">
             <span>policy</span>
             <code className="text-zinc-200 font-mono">
@@ -91,6 +107,13 @@ function Header({
           <span className={`inline-block w-2 h-2 rounded-full ${connected ? "bg-emerald-500" : "bg-zinc-600"}`} />
           <span className="text-xs text-zinc-500">{connected ? "live" : "offline"}</span>
         </div>
+        <button
+          onClick={() => postReset()}
+          title="Clear queue, decisions, and frozen state for a clean demo take"
+          className="text-xs px-3 py-1.5 rounded border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition"
+        >
+          reset
+        </button>
       </div>
 
       {frozen ? (
@@ -150,7 +173,15 @@ function WorkerPanel({ entries, frozen }: { entries: AuditEntry[]; frozen: boole
       <div className="px-6 py-3 border-b border-zinc-800 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold tracking-wide">WORKER</h2>
-          <p className="text-xs text-zinc-500 font-mono">worker.antibody.eth</p>
+          <a
+            href={ensLink("worker.antibody.eth")}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-zinc-500 hover:text-zinc-300 font-mono transition"
+            title="View on ENS — policy + immune memory live in this name's text records"
+          >
+            worker.antibody.eth ↗
+          </a>
         </div>
         <span
           className={`text-xs px-2 py-1 rounded ${frozen ? "bg-red-900/60 text-red-300" : "bg-emerald-900/60 text-emerald-300"}`}
@@ -263,7 +294,15 @@ function GuardianPanel({
       <div className="px-6 py-3 border-b border-zinc-800 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold tracking-wide">GUARDIAN</h2>
-          <p className="text-xs text-zinc-500 font-mono">guardian.antibody.eth</p>
+          <a
+            href={ensLink("guardian.antibody.eth")}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-zinc-500 hover:text-zinc-300 font-mono transition"
+            title="View on ENS"
+          >
+            guardian.antibody.eth ↗
+          </a>
         </div>
         <span className="text-xs text-zinc-500">{decisions.length} decisions</span>
       </div>
