@@ -22,7 +22,7 @@ flowchart LR
     Worker[Worker agent<br/>worker.antibody.eth] -->|propose_swap intent| Queue[Pending Queue<br/>off-chain]
     Queue --> Guardian[Guardian agent<br/>guardian.antibody.eth]
     Guardian -->|rules pass| KH1[KeeperHub<br/>/api/execute/contract-call]
-    Guardian -->|rules fire| KH2[KeeperHub<br/>USDC.approve(router, 0)<br/>= FREEZE]
+    Guardian -->|rules fire| KH2["KeeperHub<br/>USDC.approve(router, 0)<br/>= FREEZE"]
     KH1 --> Chain[Sepolia]
     KH2 --> Chain
     Guardian -->|incident hash| ENS[ENS text records<br/>immune memory]
