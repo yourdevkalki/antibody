@@ -1,9 +1,8 @@
-import { MockLLM } from "./mock.ts";
 import { TokenRouterLLM } from "./tokenrouter.ts";
 import type { LLMClient } from "./types.ts";
 
 export type { LLMClient, GenerateOptions, GenerateResult, ToolDefinition, ToolCall, ChatMessage } from "./types.ts";
-export { MockLLM, TokenRouterLLM };
+export { TokenRouterLLM };
 
 export function getLLMClient(): LLMClient {
   const apiKey = process.env.TOKENROUTER_API_KEY;
@@ -11,8 +10,9 @@ export function getLLMClient(): LLMClient {
   const model = process.env.TOKENROUTER_MODEL;
 
   if (!apiKey || !baseURL || !model) {
-    console.warn("[llm] TOKENROUTER_* env vars not all set — using MockLLM");
-    return new MockLLM();
+    throw new Error(
+      "TOKENROUTER_API_KEY, TOKENROUTER_BASE_URL, and TOKENROUTER_MODEL must all be set in .env",
+    );
   }
   return new TokenRouterLLM({ apiKey, baseURL, model });
 }

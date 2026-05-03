@@ -82,7 +82,7 @@ After any rule fire, the chat input disables and the four scenario buttons are b
 - TypeScript everywhere. Node 22.
 - **Backend:** Fastify + Server-Sent Events. `viem` for Sepolia primitives, `openai` SDK as the OpenAI-compatible client (TokenRouter is OpenAI-compatible).
 - **Frontend:** Next.js 16 + Tailwind v4 + React 19. Static landing at `src/app/page.tsx`; live demo (split-screen Worker / Guardian, EventSource) at `src/app/demo/page.tsx`.
-- **LLM:** TokenRouter routing to `claude-haiku-4-5` (Amazon Bedrock backend). MockLLM ships in the repo as a deterministic fallback for offline dev.
+- **LLM:** TokenRouter routing to `claude-haiku-4-5` (Amazon Bedrock backend), accessed via the OpenAI SDK.
 - **Execution:** KeeperHub `/api/execute/contract-call` on Ethereum Sepolia (chainId 11155111). KeeperHub manages the signing wallet via Turnkey.
 - **Audit log:** append-only JSONL at `logs/audit.jsonl`. 0G Storage adapter is roadmap.
 
