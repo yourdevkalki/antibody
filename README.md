@@ -2,7 +2,7 @@
 
 **An immune system for AI agents.** Autonomous safety infrastructure that detects on-chain misbehaviour and freezes the agent at machine speed — before a human even notices.
 
-ETHGlobal Open Agents submission, solo build. Targets KeeperHub, ENS, and Uniswap prize tracks.
+ETHGlobal Open Agents submission. Built on KeeperHub, ENS, and Uniswap.
 
 ---
 
@@ -65,7 +65,7 @@ pnpm exec tsx src/server/index.ts
 cd frontend && pnpm dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000 — that's the landing page. Click **see it live →** (or go straight to http://localhost:3000/demo) for the live agent UI.
 
 | What you do | What happens |
 |---|---|
@@ -81,7 +81,7 @@ After any rule fire, the chat input disables and the four scenario buttons are b
 
 - TypeScript everywhere. Node 22.
 - **Backend:** Fastify + Server-Sent Events. `viem` for Sepolia primitives, `openai` SDK as the OpenAI-compatible client (TokenRouter is OpenAI-compatible).
-- **Frontend:** Next.js 16 + Tailwind v4 + React 19. Single `src/app/page.tsx`, EventSource for live updates.
+- **Frontend:** Next.js 16 + Tailwind v4 + React 19. Static landing at `src/app/page.tsx`; live demo (split-screen Worker / Guardian, EventSource) at `src/app/demo/page.tsx`.
 - **LLM:** TokenRouter routing to `claude-haiku-4-5` (Amazon Bedrock backend). MockLLM ships in the repo as a deterministic fallback for offline dev.
 - **Execution:** KeeperHub `/api/execute/contract-call` on Ethereum Sepolia (chainId 11155111). KeeperHub manages the signing wallet via Turnkey.
 - **Audit log:** append-only JSONL at `logs/audit.jsonl`. 0G Storage adapter is roadmap.
@@ -140,7 +140,10 @@ frontend/           Next.js split-screen UI
 
 ## Builder feedback
 
-`FEEDBACK-KEEPERHUB.md` covers eleven specific items grouped by UX friction, bugs, docs gaps, and feature requests — submitted for KeeperHub's $250 Builder Feedback Bounty.
+Honest feedback collected while building, with reproductions, suggestions, and what worked well:
+
+- [`FEEDBACK-KEEPERHUB.md`](./FEEDBACK-KEEPERHUB.md) — eleven items grouped by UX friction, bugs, documentation gaps, and feature requests.
+- [`FEEDBACK-UNISWAP.md`](./FEEDBACK-UNISWAP.md) — four real frictions encountered using V3 SwapRouter02 on Sepolia, plus the agent / autonomous-execution docs gap.
 
 ## License
 
