@@ -29,4 +29,10 @@ export class PendingQueue extends EventEmitter {
   size(): number {
     return this.inFlight.size;
   }
+
+  clear(): void {
+    this.inFlight.clear();
+    this.decisions.clear();
+    this.history.length = 0;
+  }
 }

@@ -43,6 +43,13 @@ export interface Snapshot {
   pendingCount: number;
   llmProvider: string;
   khProvider: string;
+  ens: {
+    enabled: boolean;
+    parent: string;
+    workerName: string;
+    guardianName: string;
+    policySource: "ens" | "fallback";
+  };
 }
 
 export type AuditEntry =
@@ -52,7 +59,8 @@ export type AuditEntry =
   | { kind: "intent_decided"; at: number; decision: IntentDecision }
   | { kind: "guardian_explanation"; at: number; intentId: string; text: string }
   | { kind: "frozen"; at: number; intentId: string; freezeTxHash?: string }
-  | { kind: "policy_loaded"; at: number; source: string };
+  | { kind: "policy_loaded"; at: number; source: string }
+  | { kind: "reset"; at: number };
 
 export async function postScenario(scenario: ScenarioId): Promise<void> {
   await fetch(`${API_BASE}/worker/scenario`, {
@@ -72,6 +80,42 @@ export async function postChat(message: string): Promise<{ intentId: string }> {
   return res.json();
 }
 
+export async function postReset(): Promise<void> {
+  await fetch(`${API_BASE}/reset`, { method: "POST" });
+}
+
+export interface Balance {
+  raw: string;
+  formatted: string;
+  decimals: number;
+  symbol: string;
+}
+
+export async function fetchBalance(): Promise<Balance> {
+  const res = await fetch(`${API_BASE}/balance`);
+  return res.json();
+}
+
+export function useBalance(intervalMs = 5000): Balance | null {
+  const [balance, setBalance] = useState<Balance | null>(null);
+  useEffect(() => {
+    let active = true;
+    const tick = async () => {
+      try {
+        const b = await fetchBalance();
+        if (active) setBalance(b);
+      } catch {}
+    };
+    tick();
+    const id = setInterval(tick, intervalMs);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [intervalMs]);
+  return balance;
+}
+
 export function useEvents(): { entries: AuditEntry[]; snapshot: Snapshot | null; connected: boolean } {
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -87,6 +131,10 @@ export function useEvents(): { entries: AuditEntry[]; snapshot: Snapshot | null;
       try {
         const entry = JSON.parse(e.data) as AuditEntry;
         if (entry.kind === "snapshot") setSnapshot(entry.snapshot);
+        if (entry.kind === "reset") {
+          setEntries([]);
+          return;
+        }
         setEntries((prev) => [...prev, entry]);
       } catch {}
     };
@@ -107,4 +155,8 @@ export function shorten(addr: string, head = 6, tail = 4): string {
 export function explorerLink(txHash: string | undefined): string | null {
   if (!txHash) return null;
   return `https://sepolia.etherscan.io/tx/${txHash}`;
+}
+
+export function ensLink(name: string): string {
+  return `https://sepolia.app.ens.domains/${name}`;
 }

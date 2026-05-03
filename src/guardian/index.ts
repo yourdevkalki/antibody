@@ -18,16 +18,24 @@ export interface GuardianOptions {
 
 export class Guardian {
   private frozen = false;
+  private chain: Promise<void> = Promise.resolve();
 
   constructor(private opts: GuardianOptions) {
-    opts.queue.on("proposed", (i: SwapIntent) => this.onProposed(i));
+    opts.queue.on("proposed", (i: SwapIntent) => {
+      this.chain = this.chain.then(() => this.handleOne(i)).catch(() => {});
+    });
   }
 
   isFrozen(): boolean {
     return this.frozen;
   }
 
-  private async onProposed(intent: SwapIntent): Promise<void> {
+  reset(): void {
+    this.frozen = false;
+    this.chain = Promise.resolve();
+  }
+
+  private async handleOne(intent: SwapIntent): Promise<void> {
     if (this.frozen) {
       this.opts.queue.recordDecision({
         intentId: intent.id,

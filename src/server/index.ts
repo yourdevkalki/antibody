@@ -9,7 +9,7 @@ const HOST = process.env.HOST ?? "127.0.0.1";
 
 const app = Fastify({ logger: { level: "warn" } });
 await app.register(cors, { origin: true });
-const rt = createRuntime();
+const rt = await createRuntime();
 
 app.get("/healthz", async () => ({ ok: true }));
 
@@ -46,6 +46,13 @@ app.post<{ Body: { message: string } }>("/worker/chat", async (req) => {
   return { intentId: intent.id };
 });
 
+app.post("/reset", async () => {
+  rt.reset();
+  return { ok: true };
+});
+
+app.get("/balance", async () => rt.balance());
+
 app.listen({ port: PORT, host: HOST }).then(() => {
   console.log(`antibody server: http://${HOST}:${PORT}`);
   console.log(`  GET  /healthz`);
@@ -53,8 +60,11 @@ app.listen({ port: PORT, host: HOST }).then(() => {
   console.log(`  GET  /events                (SSE)`);
   console.log(`  POST /worker/scenario       { scenario: "legit" | "rule1-attacker" | "rule2-dump" | "rule3-burst" }`);
   console.log(`  POST /worker/chat           { message: string }`);
+  console.log(`  POST /reset                 (clear state for next demo take)`);
+  console.log(`  GET  /balance               (live USDC balance of treasury)`);
   const snap = rt.snapshot();
   console.log(`  llm: ${snap.llmProvider}  kh: ${snap.khProvider}  treasury: ${snap.treasury}`);
+  console.log(`  ens: ${snap.ens.policySource} (${snap.ens.workerName})`);
 });
 
 function bigintReplacer(_k: string, v: unknown): unknown {
