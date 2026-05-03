@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MotionWrap } from "./_components/MotionWrap";
+import { LogoMark } from "./_components/LogoMark";
 
 const T = {
   bg: "#0a0a0b",
@@ -32,10 +33,6 @@ export default function Page() {
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.4; transform: scale(0.92); }
         }
-        @keyframes ab-grid-drift {
-          0% { background-position: 0 0; }
-          100% { background-position: 40px 40px; }
-        }
         @keyframes ab-scroll-travel {
           0%   { transform: translateY(-14px); opacity: 0; }
           15%  { opacity: 1; }
@@ -55,13 +52,9 @@ export default function Page() {
         }
         .ab-scroll-label { animation: ab-scroll-text 2.4s ease-in-out infinite; }
 
-        .ab-grid-bg {
-          background-image:
-            radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
-          background-size: 40px 40px;
-          mask-image: radial-gradient(ellipse 60% 60% at 50% 30%, black, transparent);
-          -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 30%, black, transparent);
-          animation: ab-grid-drift 24s linear infinite;
+        .ab-hero-glow {
+          background:
+            radial-gradient(ellipse 65% 55% at 50% 30%, rgba(255,255,255,0.035) 0%, transparent 70%);
         }
 
         .ab-link-underline { position: relative; }
@@ -115,7 +108,7 @@ export default function Page() {
 
         @media (prefers-reduced-motion: reduce) {
           html { scroll-behavior: auto; }
-          .ab-pulse-dot, .ab-grid-bg, .ab-scroll-bar, .ab-scroll-label { animation: none !important; }
+          .ab-pulse-dot, .ab-scroll-bar, .ab-scroll-label { animation: none !important; }
           .ab-cta-primary:hover, .ab-cta-secondary:hover, .ab-card:hover, .ab-rule-row:hover, .ab-arch-box:hover {
             transform: none !important;
           }
@@ -171,11 +164,14 @@ function Header() {
           href="/"
           style={{
             display: "flex",
-            alignItems: "baseline",
-            gap: 12,
+            alignItems: "center",
+            gap: 10,
             textDecoration: "none",
           }}
         >
+          <span style={{ display: "inline-flex", color: T.text }}>
+            <LogoMark size={20} />
+          </span>
           <span
             style={{
               fontFamily: FONT_MONO,
@@ -187,7 +183,7 @@ function Header() {
           >
             ANTIBODY
           </span>
-          <span style={{ fontSize: 11, color: T.text40 }}>
+          <span style={{ fontSize: 11, color: T.text40, marginLeft: 4 }}>
             an immune system for AI agents
           </span>
         </Link>
@@ -240,7 +236,7 @@ function Hero() {
     >
       <div
         aria-hidden
-        className="ab-grid-bg"
+        className="ab-hero-glow"
         style={{
           position: "absolute",
           inset: 0,
@@ -1072,6 +1068,9 @@ function Footer() {
         <div>
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
               fontFamily: FONT_MONO,
               fontSize: 13,
               fontWeight: 500,
@@ -1080,6 +1079,9 @@ function Footer() {
               marginBottom: 8,
             }}
           >
+            <span style={{ display: "inline-flex", color: T.text }}>
+              <LogoMark size={18} />
+            </span>
             ANTIBODY
           </div>
           <div
@@ -1132,7 +1134,7 @@ function Footer() {
             github ↗
           </a>
           <a
-            href="https://app.ens.domains/worker.antibody.eth"
+            href="https://sepolia.app.ens.domains/worker.antibody.eth"
             target="_blank"
             rel="noreferrer"
             className="ab-link-underline"
@@ -1147,7 +1149,7 @@ function Footer() {
             worker.antibody.eth ↗
           </a>
           <a
-            href="https://app.ens.domains/guardian.antibody.eth"
+            href="https://sepolia.app.ens.domains/guardian.antibody.eth"
             target="_blank"
             rel="noreferrer"
             className="ab-link-underline"

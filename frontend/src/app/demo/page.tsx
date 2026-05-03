@@ -19,6 +19,7 @@ import {
   useBalance,
 } from "../lib";
 import Link from "next/link";
+import { LogoMark } from "../_components/LogoMark";
 
 const COLOR = {
   bg: "#0a0a0b",
@@ -208,24 +209,33 @@ function HeaderBar({
         borderBottom: `0.5px solid ${COLOR.border}`,
       }}
     >
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-        <Link
-          href="/"
+      <Link
+        href="/"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          textDecoration: "none",
+        }}
+      >
+        <span style={{ display: "inline-flex", color: COLOR.text }}>
+          <LogoMark size={20} />
+        </span>
+        <span
           style={{
             fontFamily: FONT_MONO,
             fontSize: 13,
             fontWeight: 500,
             letterSpacing: "0.08em",
             color: COLOR.text,
-            textDecoration: "none",
           }}
         >
           ANTIBODY
-        </Link>
-        <span style={{ fontSize: 11, color: COLOR.text40 }}>
+        </span>
+        <span style={{ fontSize: 11, color: COLOR.text40, marginLeft: 4 }}>
           an immune system for AI agents
         </span>
-      </div>
+      </Link>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span
