@@ -1,8 +1,11 @@
 import "dotenv/config";
 import { EventEmitter } from "node:events";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
 import type { Address, IntentDecision, Policy, SwapIntent } from "../shared/types.ts";
 import { PendingQueue } from "../shared/queue.ts";
-import { buildDcaPolicy } from "../shared/policy.ts";
+import { buildDcaPolicy, SEPOLIA_USDC } from "../shared/policy.ts";
+import { ERC20_ABI } from "../shared/erc20.ts";
 import { Worker } from "../worker/index.ts";
 import { Guardian } from "../guardian/index.ts";
 import { getKHClient, type KHClient } from "../keeperhub/index.ts";
@@ -12,6 +15,15 @@ import { getAuditLog, type AuditLog, type AuditEntry } from "../audit/index.ts";
 import type { ScenarioId } from "../worker/scenarios.ts";
 import { readText, setText } from "../ens/client.ts";
 import { deserializePolicy, type SerializedPolicy } from "../ens/policy.ts";
+
+const sepoliaClient = createPublicClient({ chain: sepolia, transport: http() });
+
+export interface BalanceSnapshot {
+  raw: string;
+  formatted: string;
+  decimals: number;
+  symbol: string;
+}
 
 export interface Runtime {
   bus: EventEmitter;
@@ -28,6 +40,7 @@ export interface Runtime {
   chat(message: string): Promise<SwapIntent>;
   snapshot(): RuntimeSnapshot;
   reset(): void;
+  balance(): Promise<BalanceSnapshot>;
 }
 
 export interface EnsContext {
@@ -174,6 +187,22 @@ export async function createRuntime(): Promise<Runtime> {
       state.frozen = false;
       state.explanations.clear();
       bus.emit("audit", { kind: "reset", at: Date.now() });
+    },
+    async balance() {
+      const raw = await sepoliaClient.readContract({
+        address: SEPOLIA_USDC,
+        abi: ERC20_ABI,
+        functionName: "balanceOf",
+        args: [treasury],
+      });
+      const decimals = 6;
+      const value = Number(raw) / 10 ** decimals;
+      return {
+        raw: raw.toString(),
+        formatted: value.toFixed(2),
+        decimals,
+        symbol: "USDC",
+      };
     },
   };
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type AuditEntry,
+  type Balance,
   type IntentDecision,
   type ScenarioId,
   type SwapIntent,
@@ -13,6 +14,7 @@ import {
   explorerLink,
   ensLink,
   useEvents,
+  useBalance,
 } from "./lib";
 
 const SCENARIO_BUTTONS: { id: ScenarioId; label: string }[] = [
@@ -24,6 +26,7 @@ const SCENARIO_BUTTONS: { id: ScenarioId; label: string }[] = [
 
 export default function Page() {
   const { entries, snapshot, connected } = useEvents();
+  const balance = useBalance(4000);
   const frozen = useMemo(() => entries.some((e) => e.kind === "frozen"), [entries]);
   const explanations = useMemo(() => {
     const map = new Map<string, string>();
@@ -37,6 +40,26 @@ export default function Page() {
     return map;
   }, [entries]);
 
+  const pendingDrain = useMemo(() => {
+    const decided = new Set(
+      entries.filter((e): e is Extract<AuditEntry, { kind: "intent_decided" }> => e.kind === "intent_decided").map((e) => e.decision.intentId),
+    );
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const e = entries[i];
+      if (e.kind !== "intent_proposed") continue;
+      if (decided.has(e.intent.id)) continue;
+      const fn = e.intent.functionName;
+      if (fn === "transfer" || fn === "transferFrom") {
+        const amountIdx = fn === "transfer" ? 1 : 2;
+        const amount = e.intent.functionArgs[amountIdx];
+        if (typeof amount === "string" && /^\d+$/.test(amount)) {
+          return { intentId: e.intent.id, amountRaw: amount };
+        }
+      }
+    }
+    return null;
+  }, [entries]);
+
   const freezeEntry = useMemo(
     () => entries.find((e) => e.kind === "frozen") as Extract<AuditEntry, { kind: "frozen" }> | undefined,
     [entries],
@@ -44,7 +67,14 @@ export default function Page() {
 
   return (
     <main className="min-h-screen flex flex-col">
-      <Header snapshot={snapshot} connected={connected} frozen={frozen} freezeTx={freezeEntry?.freezeTxHash} />
+      <Header
+        snapshot={snapshot}
+        connected={connected}
+        frozen={frozen}
+        freezeTx={freezeEntry?.freezeTxHash}
+        balance={balance}
+        pendingDrain={pendingDrain}
+      />
       <div className="flex-1 grid md:grid-cols-2 gap-px bg-zinc-800">
         <WorkerPanel entries={entries} frozen={frozen} />
         <GuardianPanel entries={entries} proposedById={proposedById} explanations={explanations} />
@@ -59,11 +89,15 @@ function Header({
   connected,
   frozen,
   freezeTx,
+  balance,
+  pendingDrain,
 }: {
   snapshot: ReturnType<typeof useEvents>["snapshot"];
   connected: boolean;
   frozen: boolean;
   freezeTx?: string;
+  balance: Balance | null;
+  pendingDrain: { intentId: string; amountRaw: string } | null;
 }) {
   return (
     <header
@@ -75,7 +109,9 @@ function Header({
       </div>
 
       <div className="flex items-center gap-5 text-sm">
-        {snapshot ? (
+        {snapshot && balance ? (
+          <TreasuryDisplay treasury={snapshot.treasury} balance={balance} pendingDrain={pendingDrain} frozen={frozen} />
+        ) : snapshot ? (
           <div className="flex items-center gap-2 text-zinc-400">
             <span>treasury</span>
             <code className="text-zinc-200 font-mono">{shorten(snapshot.treasury)}</code>
@@ -132,6 +168,65 @@ function Header({
         </div>
       ) : null}
     </header>
+  );
+}
+
+function TreasuryDisplay({
+  treasury,
+  balance,
+  pendingDrain,
+  frozen,
+}: {
+  treasury: string;
+  balance: Balance;
+  pendingDrain: { amountRaw: string } | null;
+  frozen: boolean;
+}) {
+  const [savedFlash, setSavedFlash] = useState(false);
+  const prevDrainRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const cur = pendingDrain?.amountRaw ?? null;
+    if (prevDrainRef.current && !cur && frozen) {
+      setSavedFlash(true);
+      const id = setTimeout(() => setSavedFlash(false), 1800);
+      return () => clearTimeout(id);
+    }
+    prevDrainRef.current = cur;
+  }, [pendingDrain, frozen]);
+
+  const drainFormatted = pendingDrain
+    ? (Number(BigInt(pendingDrain.amountRaw)) / 10 ** balance.decimals).toFixed(2)
+    : null;
+
+  const valueClass = pendingDrain
+    ? "text-red-400 animate-pulse"
+    : savedFlash
+    ? "text-emerald-400"
+    : frozen
+    ? "text-zinc-300"
+    : "text-zinc-100";
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex flex-col items-end">
+        <span className="text-[9px] uppercase tracking-wider text-zinc-500 leading-none">treasury</span>
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className={`text-xl font-mono font-bold tabular-nums transition-colors ${valueClass}`}>
+            {balance.formatted}
+          </span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-500">{balance.symbol}</span>
+          {drainFormatted ? (
+            <span className="text-xs font-mono text-red-400 animate-pulse">
+              → -{drainFormatted}
+            </span>
+          ) : savedFlash ? (
+            <span className="text-[10px] uppercase tracking-wider text-emerald-400 animate-pulse">saved</span>
+          ) : null}
+        </div>
+      </div>
+      <code className="text-[10px] text-zinc-600 font-mono hidden lg:inline">{shorten(treasury)}</code>
+    </div>
   );
 }
 

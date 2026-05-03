@@ -51,6 +51,8 @@ app.post("/reset", async () => {
   return { ok: true };
 });
 
+app.get("/balance", async () => rt.balance());
+
 app.listen({ port: PORT, host: HOST }).then(() => {
   console.log(`antibody server: http://${HOST}:${PORT}`);
   console.log(`  GET  /healthz`);
@@ -59,6 +61,7 @@ app.listen({ port: PORT, host: HOST }).then(() => {
   console.log(`  POST /worker/scenario       { scenario: "legit" | "rule1-attacker" | "rule2-dump" | "rule3-burst" }`);
   console.log(`  POST /worker/chat           { message: string }`);
   console.log(`  POST /reset                 (clear state for next demo take)`);
+  console.log(`  GET  /balance               (live USDC balance of treasury)`);
   const snap = rt.snapshot();
   console.log(`  llm: ${snap.llmProvider}  kh: ${snap.khProvider}  treasury: ${snap.treasury}`);
   console.log(`  ens: ${snap.ens.policySource} (${snap.ens.workerName})`);
